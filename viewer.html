@@ -180,7 +180,7 @@ try { token = localStorage.getItem('tgv-token') || ''; } catch (e) {}
 const saveToken = t => { token = t; try { t ? localStorage.setItem('tgv-token', t) : localStorage.removeItem('tgv-token'); } catch (e) {} };
 // API_URL: the Apps Script web app's /exec link. Requests go out without
 // Google cookies, so being signed into several Google accounts doesn't matter.
-const API_URL = 'https://script.google.com/macros/s/AKfycbwJNr_Vc9rzyAiQso3Nrbo1XlfutYhtM538GZmcUEQn6quwwggo8Df3bEdB7KauRAo-/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwTSufzgThlY9L7tHXVO_KD5LLCWNxp8BcGNB3d3rvZ_HIIIjvclb2wVmzlso4SQFi1/exec';
 const ARGS = { login: ['password'], getAccounts: [], getAccount: ['customerId'], getShapes: ['targets'] };
 const rawCall = (fn, ...args) => {
   const body = { action: fn };
