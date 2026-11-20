@@ -8,12 +8,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
 <style>
 /* Layout: operator tool — account picker + campaign rail on the left, map or table on the right; stacks on phones */
 :root {
   --bg: #f3f5f7; --panel: #ffffff; --ink: #17202b; --muted: #5b6776; --line: #d9dfe6;
   --mapbg: #e8ecf0; --target: #0f6f73; --target-fill: #14898e; --exclude: #b3372b; --radius: #6447b8;
-  --warn-bg: #fff3df; --warn-ink: #8a4b00; --chip: #eef2f5; --sel: #e3f1f1; --tiles: none;
+  --warn-bg: #fff3df; --warn-ink: #8a4b00; --chip: #eef2f5; --sel: #e3f1f1; --tiles: none; --cust: #c25e00;
   --font-ui: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -21,7 +22,7 @@
   :root {
     --bg: #11161c; --panel: #171e26; --ink: #e6ebf0; --muted: #98a4b2; --line: #2a3440;
     --mapbg: #0d1217; --target: #5fc4c6; --target-fill: #3aa8ab; --exclude: #ef7a6c; --radius: #b39ef2;
-    --warn-bg: #3a2a12; --warn-ink: #f3c07a; --chip: #212a34; --sel: #183436;
+    --warn-bg: #3a2a12; --warn-ink: #f3c07a; --chip: #212a34; --sel: #183436; --cust: #f0a04b;
     --tiles: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); color-scheme: dark;
   }
 }
@@ -99,6 +100,30 @@ tr.ex td { color: var(--exclude); }
 .gate button { font: inherit; font-weight: 600; padding: 9px 12px; border: 0; border-radius: 4px; background: var(--target); color: var(--panel); cursor: pointer; }
 .gate button:disabled { opacity: .6; cursor: default; }
 .gate .err { color: var(--exclude); font-size: 13px; min-height: 1.2em; }
+.sw.cu { width: 10px; height: 10px; border-radius: 50%; background: var(--cust); }
+.custbtn { all: unset; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--target); border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; justify-self: start; }
+.custbtn:hover { background: var(--chip); }
+.custbtn:focus-visible { outline: 2px solid var(--target); }
+.custc { display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--cust) 85%, transparent); color: #fff;
+  font: 600 11px var(--font-data); box-shadow: 0 0 0 4px color-mix(in srgb, var(--cust) 25%, transparent); }
+.modal { position: fixed; inset: 0; z-index: 1500; background: rgba(10,15,20,.45); display: grid; place-items: center; padding: 16px; }
+.modal .box { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.2); }
+.modal h2 { margin: 0; font-size: 17px; }
+.modal p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.modal .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modal label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.modal select, .modal input[type=text], .modal input[type=file] { font: inherit; font-weight: 400; padding: 7px 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); min-width: 0; }
+.modal .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.modal .actions button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 4px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+.modal .actions button.primary { background: var(--target); border-color: var(--target); color: var(--panel); }
+.modal .actions button.danger { color: var(--exclude); margin-right: auto; }
+.modal .actions button:disabled { opacity: .55; cursor: default; }
+.modal .saved { background: var(--chip); border-radius: 4px; padding: 10px 12px; font-size: 13px; }
+.bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--cust); transition: width .2s; }
+.modal .msg { font-size: 13px; min-height: 1.2em; }
+.modal .msg.err { color: var(--exclude); }
+@media (max-width: 520px) { .modal .row { grid-template-columns: 1fr; } }
 .signout { all: unset; cursor: pointer; font-size: 12px; color: var(--muted); text-decoration: underline; justify-self: start; }
 .signout:focus-visible { outline: 2px solid var(--target); }
 @media (max-width: 760px) {
@@ -123,6 +148,30 @@ tr.ex td { color: var(--exclude); }
     <button type="submit" id="loginBtn">Sign in</button>
   </form>
 </div>
+<div class="modal" id="custModal" hidden role="dialog" aria-modal="true" aria-labelledby="custTitle">
+  <div class="box">
+    <h2 id="custTitle">Sales customers</h2>
+    <p>Upload a sales export (CSV) to show where this store's customers live. The file is read in your browser. Only the address columns are sent, once, to the US Census geocoder to get coordinates. Names, addresses and every other column are never saved. The map keeps only points rounded to about 100 meters.</p>
+    <div class="saved" id="custSaved" hidden></div>
+    <label>CSV file<input type="file" id="custFile" accept=".csv,text/csv"></label>
+    <div id="custMap" hidden style="display:grid;gap:10px">
+      <div class="row">
+        <label>Street address column<select id="colStreet"></select></label>
+        <label>City column<select id="colCity"></select></label>
+        <label>State column<select id="colState"></select></label>
+        <label>ZIP column<select id="colZip"></select></label>
+      </div>
+      <label>Label for this upload<input type="text" id="custLabel" placeholder="e.g. 2026 sales" maxlength="80"></label>
+    </div>
+    <div class="bar" id="custBar" hidden><i id="custBarFill"></i></div>
+    <div class="msg" id="custMsg" role="status"></div>
+    <div class="actions">
+      <button type="button" class="danger" id="custClear" hidden>Remove saved points</button>
+      <button type="button" id="custClose">Close</button>
+      <button type="button" class="primary" id="custGo" disabled>Map customers</button>
+    </div>
+  </div>
+</div>
 <div class="app">
   <aside class="rail" aria-label="Account and campaigns">
     <header>
@@ -132,6 +181,7 @@ tr.ex td { color: var(--exclude); }
       <datalist id="acctList"></datalist>
       <h1 id="acctName">Pick an account</h1>
       <span class="meta" id="acctMeta"></span>
+      <button class="custbtn" id="custOpen" type="button" hidden>Sales customers</button>
       <button class="signout" id="signOut" type="button">Sign out</button>
     </header>
     <div id="groups"><div class="empty">Type a store name or Google Ads ID above to see its active campaigns.</div></div>
@@ -147,6 +197,7 @@ tr.ex td { color: var(--exclude); }
         <span><i class="sw t"></i>Targeted</span>
         <span><i class="sw x"></i>Excluded</span>
         <label for="showRad"><input type="checkbox" id="showRad" checked><i class="sw r"></i>Radius</label>
+        <label for="showCust" id="custLegend" hidden><input type="checkbox" id="showCust" checked><i class="sw cu"></i><span id="custCount">Customers</span></label>
       </div>
     </div>
     <div id="mapView" style="flex:1;display:flex;flex-direction:column;position:relative;min-height:0">
@@ -162,6 +213,8 @@ tr.ex td { color: var(--exclude); }
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script>
 const CHANNEL = { SEARCH: 'Search', PERFORMANCE_MAX: 'Performance Max', SHOPPING: 'Shopping', DISPLAY: 'Display',
   VIDEO: 'Video', DEMAND_GEN: 'Demand Gen', DISCOVERY: 'Demand Gen', LOCAL: 'Local', SMART: 'Smart', HOTEL: 'Hotel' };
@@ -181,7 +234,8 @@ const saveToken = t => { token = t; try { t ? localStorage.setItem('tgv-token', 
 // API_URL: the Apps Script web app's /exec link. Requests go out without
 // Google cookies, so being signed into several Google accounts doesn't matter.
 const API_URL = 'https://script.google.com/macros/s/AKfycbwTSufzgThlY9L7tHXVO_KD5LLCWNxp8BcGNB3d3rvZ_HIIIjvclb2wVmzlso4SQFi1/exec';
-const ARGS = { login: ['password'], getAccounts: [], getAccount: ['customerId'], getShapes: ['targets'] };
+const ARGS = { login: ['password'], getAccounts: [], getAccount: ['customerId'], getShapes: ['targets'],
+  geocode: ['rows'], getCustomers: ['customerId'], saveCustomers: ['customerId', 'label', 'points'], clearCustomers: ['customerId'] };
 const rawCall = (fn, ...args) => {
   const body = { action: fn };
   if (fn === 'login') body.password = args[0];
@@ -219,7 +273,10 @@ const map = L.map('map', { zoomSnap: 0.25 }).setView([39.5, -96], 4);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · boundaries: US Census TIGER' }).addTo(map);
 L.control.scale({ imperial: true, metric: false, position: 'bottomleft' }).addTo(map);
-const layers = { geo: L.layerGroup().addTo(map), radius: L.layerGroup().addTo(map) };
+const layers = { geo: L.layerGroup().addTo(map), radius: L.layerGroup().addTo(map),
+  cust: L.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, maxClusterRadius: 45, spiderfyOnMaxZoom: false, disableClusteringAtZoom: 15,
+    iconCreateFunction: cl => { const n = cl.getChildCount(), s = n < 10 ? 26 : n < 100 ? 32 : n < 1000 ? 38 : 46;
+      return L.divIcon({ html: `<div class="custc" style="width:${s}px;height:${s}px">${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n}</div>`, className: '', iconSize: [s, s] }); } }).addTo(map) };
 
 // ---------- accounts ----------
 function loadAccounts() {
@@ -241,9 +298,11 @@ $('acctInput').addEventListener('change', e => {
 });
 
 function openAccount(id) {
+  layers.cust.clearLayers(); custInfo = null;
   busy('Loading targeting…');
   call('getAccount', id).then(data => {
     account = data;
+    loadCustomers(id);
     try { localStorage.setItem('tgv-account', id); } catch (e) {}
     $('acctInput').value = `${data.name} · ${fmtId(data.id)}`;
     $('acctName').textContent = data.name;
@@ -414,11 +473,124 @@ function setView(v) {
 $('tabMap').addEventListener('click', () => setView('map'));
 $('tabTable').addEventListener('click', () => setView('table'));
 $('showRad').addEventListener('change', e => e.target.checked ? map.addLayer(layers.radius) : map.removeLayer(layers.radius));
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => draw());
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { draw(); drawCustomers(); });
 
 function showError(err) {
   $('groups').innerHTML = `<div class="empty">Something went wrong: ${esc(err && err.message || err)}</div>`;
 }
+
+// ---------- sales customers ----------
+let custInfo = null, csvRows = null, csvHeaders = [];
+function loadCustomers(id) {
+  layers.cust.clearLayers(); custInfo = null; renderCustLegend();
+  call('getCustomers', id).then(info => {
+    if (!account || account.id !== id) return;
+    custInfo = info; drawCustomers(); renderCustLegend();
+  }).catch(() => {});
+}
+function drawCustomers() {
+  layers.cust.clearLayers();
+  if (!custInfo || !custInfo.points.length) return;
+  const c = css('--cust');
+  layers.cust.addLayers(custInfo.points.map(p => L.circleMarker(p, { radius: 4, weight: 1, color: '#fff', fillColor: c, fillOpacity: .9, interactive: false })));
+}
+function renderCustLegend() {
+  const n = custInfo ? custInfo.points.length : 0;
+  $('custLegend').hidden = !n;
+  $('custCount').textContent = n ? `Customers (${n.toLocaleString()})` : 'Customers';
+  $('custOpen').hidden = !account;
+}
+$('showCust').addEventListener('change', e => e.target.checked ? map.addLayer(layers.cust) : map.removeLayer(layers.cust));
+
+const custMsg = (t, err) => { $('custMsg').textContent = t || ''; $('custMsg').className = 'msg' + (err ? ' err' : ''); };
+function openCustModal() {
+  csvRows = null; $('custFile').value = ''; $('custMap').hidden = true; $('custBar').hidden = true; custMsg('');
+  $('custGo').disabled = true; $('custLabel').value = '';
+  const n = custInfo ? custInfo.points.length : 0;
+  $('custSaved').hidden = !n; $('custClear').hidden = !n; $('custClear').dataset.armed = '';
+  $('custClear').textContent = 'Remove saved points';
+  if (n) $('custSaved').textContent = `Saved for ${account.name}: ${n.toLocaleString()} customer points ("${custInfo.label}", uploaded ${custInfo.uploaded}). A new upload replaces them.`;
+  $('custModal').hidden = false; $('custFile').focus();
+}
+$('custOpen').addEventListener('click', openCustModal);
+$('custClose').addEventListener('click', () => { $('custModal').hidden = true; });
+
+// Guess columns from common DMS export headers.
+const GUESS = {
+  colStreet: /^(street|address|address ?1|addr ?1|street address|home address|customer address|mailing address|address line ?1)$/i,
+  colCity: /^(city|town|customer city|home city)$/i,
+  colState: /^(state|st|province|customer state|home state)$/i,
+  colZip: /^(zip|zip ?code|postal|postal ?code|zip5|customer zip|home zip)$/i
+};
+$('custFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  custMsg('Reading file…');
+  Papa.parse(f, { header: true, skipEmptyLines: 'greedy', complete: res => {
+    csvRows = res.data; csvHeaders = res.meta.fields || [];
+    if (!csvRows.length || !csvHeaders.length) { custMsg('That file has no rows. Check that it is a CSV with a header row.', true); return; }
+    if (csvRows.length > 25000) { custMsg(`That file has ${csvRows.length.toLocaleString()} rows. Split it into files of 25,000 or fewer.`, true); csvRows = null; return; }
+    Object.keys(GUESS).forEach(id => {
+      const sel = $(id), guess = csvHeaders.find(hd => GUESS[id].test(hd.trim()));
+      sel.innerHTML = '<option value="">(none)</option>' + csvHeaders.map(hd => `<option ${hd === guess ? 'selected' : ''}>${esc(hd)}</option>`).join('');
+    });
+    $('custLabel').value = f.name.replace(/\.csv$/i, '').slice(0, 80);
+    $('custMap').hidden = false; $('custGo').disabled = false;
+    custMsg(`${csvRows.length.toLocaleString()} rows found. Check the columns, then map them. If the street column holds the full address, leave city, state and ZIP set to (none).`);
+  }, error: () => custMsg('Could not read that file. Save it as CSV and try again.', true) });
+});
+
+$('custGo').addEventListener('click', async () => {
+  const col = id => $(id).value;
+  if (!col('colStreet')) { custMsg('Pick the street address column.', true); return; }
+  const rows = [];
+  csvRows.forEach((r, i) => {
+    const street = String(r[col('colStreet')] || '').trim();
+    if (!street) return;
+    rows.push({ i, street, city: col('colCity') ? r[col('colCity')] : '', state: col('colState') ? r[col('colState')] : '', zip: col('colZip') ? r[col('colZip')] : '' });
+  });
+  if (!rows.length) { custMsg('No addresses found in that column.', true); return; }
+  const acctId = account.id, label = $('custLabel').value.trim() || 'Sales customers';
+  $('custGo').disabled = true; $('custClose').disabled = true; $('custBar').hidden = false;
+  const chunks = []; for (let k = 0; k < rows.length; k += 500) chunks.push(rows.slice(k, k + 500));
+  const points = []; let done = 0, next = 0, failed = 0;
+  const step = () => { $('custBarFill').style.width = Math.round(done / rows.length * 100) + '%'; custMsg(`Finding coordinates: ${done.toLocaleString()} of ${rows.length.toLocaleString()} addresses…`); };
+  step();
+  const worker = async () => {
+    while (next < chunks.length) {
+      const ch = chunks[next++];
+      let res = null;
+      for (let attempt = 0; attempt < 2 && !res; attempt++) { try { res = await call('geocode', ch); } catch (e) { if (attempt) failed += ch.length; } }
+      (res || []).forEach(p => points.push([p.lat, p.lng]));
+      done += ch.length; step();
+    }
+  };
+  try {
+    await Promise.all([worker(), worker(), worker()]);
+    csvRows = null; // drop the file's contents from the page
+    if (!points.length) throw new Error('None of the addresses could be matched. Check the column choices.');
+    custMsg(`Saving ${points.length.toLocaleString()} points…`);
+    const saved = await call('saveCustomers', acctId, label, points);
+    const missed = rows.length - points.length;
+    custMsg(`Mapped ${saved.saved.toLocaleString()} of ${rows.length.toLocaleString()} customers.` +
+      (missed ? ` ${missed.toLocaleString()} couldn't be matched to an address${failed ? ` (${failed.toLocaleString()} because the geocoder didn't respond — try again later)` : ''}.` : ''));
+    if (account && account.id === acctId) { custInfo = { points, label: saved.label, uploaded: saved.uploaded }; drawCustomers(); renderCustLegend(); }
+  } catch (err) {
+    custMsg(String(err && err.message || err), true);
+  } finally {
+    $('custClose').disabled = false; $('custFile').value = ''; $('custMap').hidden = true;
+  }
+});
+
+$('custClear').addEventListener('click', () => {
+  const b = $('custClear');
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Click again to remove'; return; }
+  b.disabled = true;
+  call('clearCustomers', account.id).then(() => {
+    custInfo = null; drawCustomers(); renderCustLegend();
+    $('custSaved').hidden = true; b.hidden = true; custMsg('Saved points removed.');
+  }).catch(err => custMsg(String(err && err.message || err), true)).finally(() => { b.disabled = false; });
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('custModal').hidden && !$('custClose').disabled) $('custModal').hidden = true; });
 
 if (token) loadAccounts(); else showGate();
 </script>
