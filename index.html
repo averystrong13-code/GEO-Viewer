@@ -30,12 +30,13 @@
 [hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 14px; }
-.app { display: grid; grid-template-columns: minmax(280px, 360px) 1fr; grid-template-rows: 100%; height: 100%; overflow: hidden; }
+.app { display: grid; grid-template-columns: clamp(320px, 27vw, 440px) 1fr; grid-template-rows: 100%; height: 100%; overflow: hidden; }
 .rail { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
 .rail header { padding: 16px 18px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
 .eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-h1 { font-size: 19px; margin: 0; font-weight: 700; text-wrap: balance; }
-.meta { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+h1 { font-size: 19px; margin: 0; font-weight: 700; text-wrap: balance; overflow-wrap: anywhere; }
+.fullname { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; line-height: 1.4; }
+.meta { font-family: var(--font-data); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 #acctInput { width: 100%; font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); }
 #acctInput:focus-visible { outline: 2px solid var(--target); outline-offset: 0; }
 .group { border-bottom: 1px solid var(--line); }
@@ -112,7 +113,13 @@ tr.ex td { color: var(--exclude); }
 .modal p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .modal .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .filters { border-bottom: 1px solid var(--line); }
-.filters summary { cursor: pointer; padding: 12px 18px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.filters summary { cursor: pointer; padding: 12px 18px; font-weight: 600; display: flex; gap: 8px; align-items: center; list-style: none; }
+.filters summary::-webkit-details-marker { display: none; }
+.filters summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s; margin-right: 2px; }
+.filters[open] summary::before { transform: rotate(45deg); }
+.filters summary:hover { background: var(--chip); }
+.filters summary .hint { font-weight: 400; font-size: 12px; color: var(--muted); }
+.detail .eyebrow { overflow-wrap: anywhere; }
 .filters summary:focus-visible { outline: 2px solid var(--target); outline-offset: -2px; }
 .fgrid { display: grid; gap: 14px; padding: 2px 18px 16px; }
 .fl { display: grid; gap: 6px; }
@@ -212,12 +219,13 @@ tr.ex td { color: var(--exclude); }
       <input id="acctInput" list="acctList" placeholder="Loading accounts…" autocomplete="off">
       <datalist id="acctList"></datalist>
       <h1 id="acctName">Pick an account</h1>
+      <span class="fullname" id="acctFull" hidden></span>
       <span class="meta" id="acctMeta"></span>
       <button class="custbtn" id="custOpen" type="button" hidden>Sales and service customers</button>
       <button class="signout" id="signOut" type="button">Sign out</button>
     </header>
     <details class="filters" id="custFilters" hidden>
-      <summary><span>Customer filters</span><span class="chip" id="fltBadge" hidden></span></summary>
+      <summary><span>Customer filters</span><span class="hint">year, make, model, dates</span><span class="chip" id="fltBadge" hidden></span></summary>
       <div class="fgrid">
         <div class="fl"><span class="eyebrow">Model year</span>
           <div class="pair"><select id="fYearMin" aria-label="Earliest model year"></select><span>to</span><select id="fYearMax" aria-label="Latest model year"></select></div></div>
@@ -264,6 +272,7 @@ tr.ex td { color: var(--exclude); }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="config.js"></script>
 <script>
 const CHANNEL = { SEARCH: 'Search', PERFORMANCE_MAX: 'Performance Max', SHOPPING: 'Shopping', DISPLAY: 'Display',
   VIDEO: 'Video', DEMAND_GEN: 'Demand Gen', DISCOVERY: 'Demand Gen', LOCAL: 'Local', SMART: 'Smart', HOTEL: 'Hotel' };
@@ -282,7 +291,8 @@ try { token = localStorage.getItem('tgv-token') || ''; } catch (e) {}
 const saveToken = t => { token = t; try { t ? localStorage.setItem('tgv-token', t) : localStorage.removeItem('tgv-token'); } catch (e) {} };
 // API_URL: the Apps Script web app's /exec link. Requests go out without
 // Google cookies, so being signed into several Google accounts doesn't matter.
-const API_URL = 'https://script.google.com/macros/s/AKfycbwTSufzgThlY9L7tHXVO_KD5LLCWNxp8BcGNB3d3rvZ_HIIIjvclb2wVmzlso4SQFi1/exec';
+// Set once in config.js next to this file, so updating this page never wipes it.
+const API_URL = window.TGV_API_URL || 'https://script.google.com/macros/s/AKfycbwTSufzgThlY9L7tHXVO_KD5LLCWNxp8BcGNB3d3rvZ_HIIIjvclb2wVmzlso4SQFi1/exec';
 const ARGS = { login: ['password'], getAccounts: [], getAccount: ['customerId'], getShapes: ['targets'],
   geocode: ['rows'], getCustomers: ['customerId'], saveCustomers: ['customerId', 'label', 'points'], clearCustomers: ['customerId', 'group'] };
 const rawCall = (fn, ...args) => {
@@ -347,6 +357,7 @@ function loadAccounts() {
     if (start && accounts.some(a => a.id === start)) openAccount(start);
   }).catch(err => { $('acctInput').placeholder = 'Could not load accounts'; showError(err); });
 }
+const shortName = n => (String(n).match(/^\[([^\]]+)\]/) || [])[1] || n;
 const fmtId = id => String(id).replace(/^(\d{3})(\d{3})(\d{4})$/, '$1-$2-$3');
 $('acctInput').addEventListener('change', e => {
   const v = e.target.value.trim(), digits = v.replace(/\D/g, '');
@@ -363,7 +374,10 @@ function openAccount(id) {
     loadCustomers(id);
     try { localStorage.setItem('tgv-account', id); } catch (e) {}
     $('acctInput').value = `${data.name} · ${fmtId(data.id)}`;
-    $('acctName').textContent = data.name;
+    // Long MCC names like "[CHO - Chevrolet Center]_114703_..." show the bracketed store name as the heading.
+    const short = shortName(data.name) !== data.name ? shortName(data.name) : '';
+    $('acctName').textContent = short || data.name;
+    $('acctFull').textContent = data.name; $('acctFull').hidden = !short;
     buildCampaigns(data.rows);
     $('acctMeta').textContent = `${fmtId(data.id)} · ${campaigns.length} active campaigns · exported ${data.date}`;
     renderRail();
@@ -417,7 +431,7 @@ function renderRail() {
 
 function current() {
   if (selected !== 'all') return campaigns.find(c => c.id === selected);
-  const seen = {}, rseen = {}, all = { id: 'all', name: 'All active campaigns', type: account.name, pos: [], neg: [], radius: [], broad: 0, noGeo: false };
+  const seen = {}, rseen = {}, all = { id: 'all', name: 'All active campaigns', type: shortName(account.name), pos: [], neg: [], radius: [], broad: 0, noGeo: false };
   campaigns.forEach(c => {
     c.pos.forEach(r => { if (!seen[r.geoId]) { seen[r.geoId] = 1; all.pos.push(r); } });
     c.radius.forEach(r => { const k = `${r.lat},${r.lng},${r.radiusMi}`; if (!rseen[k]) { rseen[k] = 1; all.radius.push(r); } });
@@ -640,7 +654,7 @@ function renderSaved() {
   const ups = custInfo ? custInfo.uploads || [] : [];
   const has = g => ups.some(u => u.group === g);
   $('custSaved').hidden = !ups.length;
-  $('custSaved').innerHTML = ups.length ? `<strong>Saved for ${esc(account.name)}</strong>` + ups.map(u =>
+  $('custSaved').innerHTML = ups.length ? `<strong>Saved for ${esc(shortName(account.name))}</strong>` + ups.map(u =>
     `<div>${GROUP_NAME[u.group]}: ${u.count.toLocaleString()} points from "${esc(u.label)}", uploaded ${esc(u.uploaded)}</div>`).join('') +
     '<div class="note">A new sales file replaces saved sales points; a new service file replaces saved service points.</div>' : '';
   [['clrSales', has('sales')], ['clrService', has('service')], ['clrAll', has('sales') && has('service')]].forEach(([id, show]) => {
