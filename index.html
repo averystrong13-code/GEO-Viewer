@@ -14,7 +14,7 @@
 :root {
   --bg: #f3f5f7; --panel: #ffffff; --ink: #17202b; --muted: #5b6776; --line: #d9dfe6;
   --mapbg: #e8ecf0; --target: #0f6f73; --target-fill: #14898e; --exclude: #b3372b; --radius: #6447b8;
-  --warn-bg: #fff3df; --warn-ink: #8a4b00; --chip: #eef2f5; --sel: #e3f1f1; --tiles: none; --cust: #c25e00;
+  --warn-bg: #fff3df; --warn-ink: #8a4b00; --chip: #eef2f5; --sel: #e3f1f1; --tiles: none; --cust: #c25e00; --cust-n: #c25e00; --cust-u: #1f6fb2; --cust-s: #a23a8c; --cust-o: #6b7684;
   --font-ui: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -22,7 +22,7 @@
   :root {
     --bg: #11161c; --panel: #171e26; --ink: #e6ebf0; --muted: #98a4b2; --line: #2a3440;
     --mapbg: #0d1217; --target: #5fc4c6; --target-fill: #3aa8ab; --exclude: #ef7a6c; --radius: #b39ef2;
-    --warn-bg: #3a2a12; --warn-ink: #f3c07a; --chip: #212a34; --sel: #183436; --cust: #f0a04b;
+    --warn-bg: #3a2a12; --warn-ink: #f3c07a; --chip: #212a34; --sel: #183436; --cust: #f0a04b; --cust-n: #f0a04b; --cust-u: #6cb4f0; --cust-s: #e38bd0; --cust-o: #9aa6b3;
     --tiles: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9); color-scheme: dark;
   }
 }
@@ -100,12 +100,12 @@ tr.ex td { color: var(--exclude); }
 .gate button { font: inherit; font-weight: 600; padding: 9px 12px; border: 0; border-radius: 4px; background: var(--target); color: var(--panel); cursor: pointer; }
 .gate button:disabled { opacity: .6; cursor: default; }
 .gate .err { color: var(--exclude); font-size: 13px; min-height: 1.2em; }
-.sw.cu { width: 10px; height: 10px; border-radius: 50%; background: var(--cust); }
+.sw.cu { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
 .custbtn { all: unset; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--target); border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; justify-self: start; }
 .custbtn:hover { background: var(--chip); }
 .custbtn:focus-visible { outline: 2px solid var(--target); }
-.custc { display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--cust) 85%, transparent); color: #fff;
-  font: 600 11px var(--font-data); box-shadow: 0 0 0 4px color-mix(in srgb, var(--cust) 25%, transparent); }
+.custc { display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--c) 88%, transparent); color: var(--panel);
+  font: 600 11px var(--font-data); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent); }
 .modal { position: fixed; inset: 0; z-index: 1500; background: rgba(10,15,20,.45); display: grid; place-items: center; padding: 16px; }
 .modal .box { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.2); }
 .modal h2 { margin: 0; font-size: 17px; }
@@ -120,7 +120,7 @@ tr.ex td { color: var(--exclude); }
 .modal .actions button:disabled { opacity: .55; cursor: default; }
 .modal .saved { background: var(--chip); border-radius: 4px; padding: 10px 12px; font-size: 13px; }
 .bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
-.bar i { display: block; height: 100%; width: 0; background: var(--cust); transition: width .2s; }
+.bar i { display: block; height: 100%; width: 0; background: var(--target); transition: width .2s; }
 .modal .msg { font-size: 13px; min-height: 1.2em; }
 .modal .msg.err { color: var(--exclude); }
 @media (max-width: 520px) { .modal .row { grid-template-columns: 1fr; } }
@@ -151,7 +151,7 @@ tr.ex td { color: var(--exclude); }
 <div class="modal" id="custModal" hidden role="dialog" aria-modal="true" aria-labelledby="custTitle">
   <div class="box">
     <h2 id="custTitle">Sales customers</h2>
-    <p>Upload a sales export (CSV) to show where this store's customers live. The file is read in your browser. Only the address columns are sent, once, to the US Census geocoder to get coordinates. Names, addresses and every other column are never saved. The map keeps only points rounded to about 100 meters.</p>
+    <p>Upload a sales or service export (CSV) to show where this store's customers live, split into new sales, used sales and service. The file is read in your browser. Only the address columns are sent, once, to the US Census geocoder to get coordinates. Names, addresses and every other column are never saved. The map keeps only points rounded to about 100 meters.</p>
     <div class="saved" id="custSaved" hidden></div>
     <label>CSV file<input type="file" id="custFile" accept=".csv,text/csv"></label>
     <div id="custMap" hidden style="display:grid;gap:10px">
@@ -160,6 +160,8 @@ tr.ex td { color: var(--exclude); }
         <label>City column<select id="colCity"></select></label>
         <label>State column<select id="colState"></select></label>
         <label>ZIP column<select id="colZip"></select></label>
+        <label>Category column (New / Used / N/A)<select id="colCat"></select></label>
+        <label>Source column (1-sold / 2-svc)<select id="colSrc"></select></label>
       </div>
       <label>Label for this upload<input type="text" id="custLabel" placeholder="e.g. 2026 sales" maxlength="80"></label>
     </div>
@@ -197,7 +199,7 @@ tr.ex td { color: var(--exclude); }
         <span><i class="sw t"></i>Targeted</span>
         <span><i class="sw x"></i>Excluded</span>
         <label for="showRad"><input type="checkbox" id="showRad" checked><i class="sw r"></i>Radius</label>
-        <label for="showCust" id="custLegend" hidden><input type="checkbox" id="showCust" checked><i class="sw cu"></i><span id="custCount">Customers</span></label>
+        <span id="custLegend" style="display:contents"></span>
       </div>
     </div>
     <div id="mapView" style="flex:1;display:flex;flex-direction:column;position:relative;min-height:0">
@@ -274,9 +276,18 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18,
   attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · boundaries: US Census TIGER' }).addTo(map);
 L.control.scale({ imperial: true, metric: false, position: 'bottomleft' }).addTo(map);
 const layers = { geo: L.layerGroup().addTo(map), radius: L.layerGroup().addTo(map),
-  cust: L.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, maxClusterRadius: 45, spiderfyOnMaxZoom: false, disableClusteringAtZoom: 15,
+  cust: {} };
+// One clustered layer per customer type so each can be shown or hidden.
+const CUST_TYPES = [
+  { k: 'N', name: 'New sales', color: '--cust-n' }, { k: 'U', name: 'Used sales', color: '--cust-u' },
+  { k: 'S', name: 'Service', color: '--cust-s' }, { k: 'O', name: 'Other', color: '--cust-o' }];
+CUST_TYPES.forEach(t => {
+  layers.cust[t.k] = L.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, maxClusterRadius: 45, spiderfyOnMaxZoom: false, disableClusteringAtZoom: 15,
     iconCreateFunction: cl => { const n = cl.getChildCount(), s = n < 10 ? 26 : n < 100 ? 32 : n < 1000 ? 38 : 46;
-      return L.divIcon({ html: `<div class="custc" style="width:${s}px;height:${s}px">${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n}</div>`, className: '', iconSize: [s, s] }); } }).addTo(map) };
+      return L.divIcon({ html: `<div class="custc" style="--c:var(${t.color});width:${s}px;height:${s}px" title="${t.name}">${n >= 1000 ? (n / 1000).toFixed(1) + 'k' : n}</div>`, className: '', iconSize: [s, s] }); } }).addTo(map);
+});
+const custHidden = {};
+const clearCust = () => CUST_TYPES.forEach(t => layers.cust[t.k].clearLayers());
 
 // ---------- accounts ----------
 function loadAccounts() {
@@ -298,7 +309,7 @@ $('acctInput').addEventListener('change', e => {
 });
 
 function openAccount(id) {
-  layers.cust.clearLayers(); custInfo = null;
+  clearCust(); custInfo = null;
   busy('Loading targeting…');
   call('getAccount', id).then(data => {
     account = data;
@@ -482,25 +493,36 @@ function showError(err) {
 // ---------- sales customers ----------
 let custInfo = null, csvRows = null, csvHeaders = [];
 function loadCustomers(id) {
-  layers.cust.clearLayers(); custInfo = null; renderCustLegend();
+  clearCust(); custInfo = null; renderCustLegend();
   call('getCustomers', id).then(info => {
     if (!account || account.id !== id) return;
     custInfo = info; drawCustomers(); renderCustLegend();
   }).catch(() => {});
 }
 function drawCustomers() {
-  layers.cust.clearLayers();
+  clearCust();
   if (!custInfo || !custInfo.points.length) return;
-  const c = css('--cust');
-  layers.cust.addLayers(custInfo.points.map(p => L.circleMarker(p, { radius: 4, weight: 1, color: '#fff', fillColor: c, fillOpacity: .9, interactive: false })));
+  const edge = css('--panel');
+  CUST_TYPES.forEach(t => {
+    const c = css(t.color);
+    layers.cust[t.k].addLayers(custInfo.points.filter(p => (p[2] || 'O') === t.k)
+      .map(p => L.circleMarker([p[0], p[1]], { radius: 4, weight: 1, color: edge, fillColor: c, fillOpacity: .9, interactive: false })));
+  });
 }
 function renderCustLegend() {
-  const n = custInfo ? custInfo.points.length : 0;
-  $('custLegend').hidden = !n;
-  $('custCount').textContent = n ? `Customers (${n.toLocaleString()})` : 'Customers';
+  const counts = {}; (custInfo ? custInfo.points : []).forEach(p => counts[p[2] || 'O'] = (counts[p[2] || 'O'] || 0) + 1);
+  $('custLegend').innerHTML = CUST_TYPES.filter(t => counts[t.k]).map(t =>
+    `<label for="showCust${t.k}"><input type="checkbox" id="showCust${t.k}" data-k="${t.k}" ${custHidden[t.k] ? '' : 'checked'}>` +
+    `<i class="sw cu" style="--c:var(${t.color})"></i>${t.name} (${counts[t.k].toLocaleString()})</label>`).join('');
+  $('custLegend').querySelectorAll('input').forEach(cb => cb.addEventListener('change', e => {
+    const k = e.target.dataset.k; custHidden[k] = !e.target.checked;
+    e.target.checked ? map.addLayer(layers.cust[k]) : map.removeLayer(layers.cust[k]);
+  }));
+  CUST_TYPES.forEach(t => { if (custHidden[t.k]) map.removeLayer(layers.cust[t.k]); else if (!map.hasLayer(layers.cust[t.k])) map.addLayer(layers.cust[t.k]); });
   $('custOpen').hidden = !account;
 }
-$('showCust').addEventListener('change', e => e.target.checked ? map.addLayer(layers.cust) : map.removeLayer(layers.cust));
+const typeSummary = pts => { const c = {}; pts.forEach(p => c[p[2] || 'O'] = (c[p[2] || 'O'] || 0) + 1);
+  return CUST_TYPES.filter(t => c[t.k]).map(t => `${c[t.k].toLocaleString()} ${t.name.toLowerCase()}`).join(', '); };
 
 const custMsg = (t, err) => { $('custMsg').textContent = t || ''; $('custMsg').className = 'msg' + (err ? ' err' : ''); };
 function openCustModal() {
@@ -509,7 +531,7 @@ function openCustModal() {
   const n = custInfo ? custInfo.points.length : 0;
   $('custSaved').hidden = !n; $('custClear').hidden = !n; $('custClear').dataset.armed = '';
   $('custClear').textContent = 'Remove saved points';
-  if (n) $('custSaved').textContent = `Saved for ${account.name}: ${n.toLocaleString()} customer points ("${custInfo.label}", uploaded ${custInfo.uploaded}). A new upload replaces them.`;
+  if (n) $('custSaved').textContent = `Saved for ${account.name}: ${n.toLocaleString()} points (${typeSummary(custInfo.points)}) from "${custInfo.label}", uploaded ${custInfo.uploaded}. A new upload replaces them.`;
   $('custModal').hidden = false; $('custFile').focus();
 }
 $('custOpen').addEventListener('click', openCustModal);
@@ -520,8 +542,18 @@ const GUESS = {
   colStreet: /^(street|address|address ?1|addr ?1|street address|home address|customer address|mailing address|address line ?1)$/i,
   colCity: /^(city|town|customer city|home city)$/i,
   colState: /^(state|st|province|customer state|home state)$/i,
-  colZip: /^(zip|zip ?code|postal|postal ?code|zip5|customer zip|home zip)$/i
+  colZip: /^(zip|zip ?code|postal|postal ?code|zip5|customer zip|home zip)$/i,
+  colCat: /^(category|sale ?type|deal ?type|new ?\/ ?used|n ?\/ ?u|vehicle ?type)$/i,
+  colSrc: /^(source|record ?type|src|data ?source)$/i
 };
+// New / Used from the category column; N/A or a 2-svc source means service.
+function classify(cat, src) {
+  cat = String(cat || '').trim().toLowerCase(); src = String(src || '').trim().toLowerCase();
+  if (cat === 'new') return 'N';
+  if (cat === 'used') return 'U';
+  if (/svc|service/.test(src) || /^2\b/.test(src) || cat === 'n/a' || cat === 'na') return 'S';
+  return 'O';
+}
 $('custFile').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
   custMsg('Reading file…');
@@ -542,11 +574,12 @@ $('custFile').addEventListener('change', e => {
 $('custGo').addEventListener('click', async () => {
   const col = id => $(id).value;
   if (!col('colStreet')) { custMsg('Pick the street address column.', true); return; }
-  const rows = [];
+  const rows = [], types = {};
   csvRows.forEach((r, i) => {
     const street = String(r[col('colStreet')] || '').trim();
     if (!street) return;
     rows.push({ i, street, city: col('colCity') ? r[col('colCity')] : '', state: col('colState') ? r[col('colState')] : '', zip: col('colZip') ? r[col('colZip')] : '' });
+    types[i] = classify(col('colCat') ? r[col('colCat')] : '', col('colSrc') ? r[col('colSrc')] : '');
   });
   if (!rows.length) { custMsg('No addresses found in that column.', true); return; }
   const acctId = account.id, label = $('custLabel').value.trim() || 'Sales customers';
@@ -560,7 +593,7 @@ $('custGo').addEventListener('click', async () => {
       const ch = chunks[next++];
       let res = null;
       for (let attempt = 0; attempt < 2 && !res; attempt++) { try { res = await call('geocode', ch); } catch (e) { if (attempt) failed += ch.length; } }
-      (res || []).forEach(p => points.push([p.lat, p.lng]));
+      (res || []).forEach(p => points.push([p.lat, p.lng, types[p.i] || 'O']));
       done += ch.length; step();
     }
   };
@@ -571,7 +604,7 @@ $('custGo').addEventListener('click', async () => {
     custMsg(`Saving ${points.length.toLocaleString()} points…`);
     const saved = await call('saveCustomers', acctId, label, points);
     const missed = rows.length - points.length;
-    custMsg(`Mapped ${saved.saved.toLocaleString()} of ${rows.length.toLocaleString()} customers.` +
+    custMsg(`Mapped ${saved.saved.toLocaleString()} of ${rows.length.toLocaleString()} customers: ${typeSummary(points)}.` +
       (missed ? ` ${missed.toLocaleString()} couldn't be matched to an address${failed ? ` (${failed.toLocaleString()} because the geocoder didn't respond — try again later)` : ''}.` : ''));
     if (account && account.id === acctId) { custInfo = { points, label: saved.label, uploaded: saved.uploaded }; drawCustomers(); renderCustLegend(); }
   } catch (err) {
