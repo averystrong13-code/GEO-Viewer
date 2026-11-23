@@ -111,12 +111,27 @@ tr.ex td { color: var(--exclude); }
 .modal h2 { margin: 0; font-size: 17px; }
 .modal p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .modal .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.filters { border-bottom: 1px solid var(--line); }
+.filters summary { cursor: pointer; padding: 12px 18px; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.filters summary:focus-visible { outline: 2px solid var(--target); outline-offset: -2px; }
+.fgrid { display: grid; gap: 14px; padding: 2px 18px 16px; }
+.fl { display: grid; gap: 6px; }
+.pair { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+.pair select, .pair input, #fModelSearch { font: inherit; font-size: 13px; padding: 5px 7px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); min-width: 0; flex: 1; }
+.checks { display: grid; gap: 2px; max-height: 150px; overflow-y: auto; border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; font-size: 13px; }
+.checks.inline { display: flex; flex-wrap: wrap; gap: 4px 14px; max-height: none; border: 0; padding: 0; }
+.checks label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.checks input { margin: 0; accent-color: var(--target); }
+.checks .n { margin-left: auto; font-family: var(--font-data); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.checks .none { color: var(--muted); font-size: 12px; }
 .modal label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .modal select, .modal input[type=text], .modal input[type=file] { font: inherit; font-weight: 400; padding: 7px 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); min-width: 0; }
 .modal .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 .modal .actions button { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 4px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
 .modal .actions button.primary { background: var(--target); border-color: var(--target); color: var(--panel); }
-.modal .actions button.danger { color: var(--exclude); margin-right: auto; }
+.modal .actions button.danger { color: var(--exclude); }
+.modal .actions #custClose { margin-left: auto; }
+.modal .saved div + div { margin-top: 4px; }
 .modal .actions button:disabled { opacity: .55; cursor: default; }
 .modal .saved { background: var(--chip); border-radius: 4px; padding: 10px 12px; font-size: 13px; }
 .bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
@@ -150,25 +165,40 @@ tr.ex td { color: var(--exclude); }
 </div>
 <div class="modal" id="custModal" hidden role="dialog" aria-modal="true" aria-labelledby="custTitle">
   <div class="box">
-    <h2 id="custTitle">Sales customers</h2>
-    <p>Upload a sales or service export (CSV) to show where this store's customers live, split into new sales, used sales and service. The file is read in your browser. Only the address columns are sent, once, to the US Census geocoder to get coordinates. Names, addresses and every other column are never saved. The map keeps only points rounded to about 100 meters.</p>
+    <h2 id="custTitle">Sales and service customers</h2>
+    <p>Upload a sales or service export (CSV) to show where this store's customers live. The file is read in your browser. Only the address columns are sent, once, to the US Census geocoder to get coordinates. Names, addresses and deal numbers are never saved. Each point keeps only its location (rounded to about 100 meters), the vehicle, purchase type and dates.</p>
     <div class="saved" id="custSaved" hidden></div>
     <label>CSV file<input type="file" id="custFile" accept=".csv,text/csv"></label>
     <div id="custMap" hidden style="display:grid;gap:10px">
+      <span class="eyebrow">Address</span>
       <div class="row">
-        <label>Street address column<select id="colStreet"></select></label>
-        <label>City column<select id="colCity"></select></label>
-        <label>State column<select id="colState"></select></label>
-        <label>ZIP column<select id="colZip"></select></label>
-        <label>Category column (New / Used / N/A)<select id="colCat"></select></label>
-        <label>Source column (1-sold / 2-svc)<select id="colSrc"></select></label>
+        <label>Street address<select id="colStreet"></select></label>
+        <label>City<select id="colCity"></select></label>
+        <label>State<select id="colState"></select></label>
+        <label>ZIP<select id="colZip"></select></label>
+      </div>
+      <span class="eyebrow">Sale or service</span>
+      <div class="row">
+        <label>Category (New / Used / N/A)<select id="colCat"></select></label>
+        <label>Source (1-sold / 2-svc)<select id="colSrc"></select></label>
+      </div>
+      <span class="eyebrow">Vehicle and dates (for filters)</span>
+      <div class="row">
+        <label>Year<select id="colYear"></select></label>
+        <label>Make<select id="colMake"></select></label>
+        <label>Model<select id="colModel"></select></label>
+        <label>Purchase type<select id="colPurch"></select></label>
+        <label>Sale date<select id="colSaleDate"></select></label>
+        <label>Last service date<select id="colSvcDate"></select></label>
       </div>
       <label>Label for this upload<input type="text" id="custLabel" placeholder="e.g. 2026 sales" maxlength="80"></label>
     </div>
     <div class="bar" id="custBar" hidden><i id="custBarFill"></i></div>
     <div class="msg" id="custMsg" role="status"></div>
     <div class="actions">
-      <button type="button" class="danger" id="custClear" hidden>Remove saved points</button>
+      <button type="button" class="danger" id="clrSales" data-group="sales" hidden>Remove sales</button>
+      <button type="button" class="danger" id="clrService" data-group="service" hidden>Remove service</button>
+      <button type="button" class="danger" id="clrAll" data-group="all" hidden>Remove all</button>
       <button type="button" id="custClose">Close</button>
       <button type="button" class="primary" id="custGo" disabled>Map customers</button>
     </div>
@@ -183,9 +213,26 @@ tr.ex td { color: var(--exclude); }
       <datalist id="acctList"></datalist>
       <h1 id="acctName">Pick an account</h1>
       <span class="meta" id="acctMeta"></span>
-      <button class="custbtn" id="custOpen" type="button" hidden>Sales customers</button>
+      <button class="custbtn" id="custOpen" type="button" hidden>Sales and service customers</button>
       <button class="signout" id="signOut" type="button">Sign out</button>
     </header>
+    <details class="filters" id="custFilters" hidden>
+      <summary><span>Customer filters</span><span class="chip" id="fltBadge" hidden></span></summary>
+      <div class="fgrid">
+        <div class="fl"><span class="eyebrow">Model year</span>
+          <div class="pair"><select id="fYearMin" aria-label="Earliest model year"></select><span>to</span><select id="fYearMax" aria-label="Latest model year"></select></div></div>
+        <div class="fl"><span class="eyebrow">Make</span><div class="checks" id="fMake"></div></div>
+        <div class="fl"><span class="eyebrow">Model</span><input type="search" id="fModelSearch" placeholder="Search models" aria-label="Search models"><div class="checks" id="fModel"></div></div>
+        <div class="fl"><span class="eyebrow">Purchase type</span><div class="checks inline" id="fPurch"></div><span class="note">Only affects points that have a purchase type.</span></div>
+        <div class="fl"><span class="eyebrow">Sale date</span>
+          <div class="pair"><input type="date" id="fSaleFrom" aria-label="Sale date from"><span>to</span><input type="date" id="fSaleTo" aria-label="Sale date to"></div>
+          <span class="note">Only affects points that have a sale date.</span></div>
+        <div class="fl"><span class="eyebrow">Last service date</span>
+          <div class="pair"><input type="date" id="fSvcFrom" aria-label="Service date from"><span>to</span><input type="date" id="fSvcTo" aria-label="Service date to"></div>
+          <span class="note">Only affects points that have a service date.</span></div>
+        <div class="fl"><span class="note" id="fltCount"></span><button type="button" class="signout" id="fltClear">Clear filters</button></div>
+      </div>
+    </details>
     <div id="groups"><div class="empty">Type a store name or Google Ads ID above to see its active campaigns.</div></div>
   </aside>
   <section class="main">
@@ -237,7 +284,7 @@ const saveToken = t => { token = t; try { t ? localStorage.setItem('tgv-token', 
 // Google cookies, so being signed into several Google accounts doesn't matter.
 const API_URL = 'https://script.google.com/macros/s/AKfycbwTSufzgThlY9L7tHXVO_KD5LLCWNxp8BcGNB3d3rvZ_HIIIjvclb2wVmzlso4SQFi1/exec';
 const ARGS = { login: ['password'], getAccounts: [], getAccount: ['customerId'], getShapes: ['targets'],
-  geocode: ['rows'], getCustomers: ['customerId'], saveCustomers: ['customerId', 'label', 'points'], clearCustomers: ['customerId'] };
+  geocode: ['rows'], getCustomers: ['customerId'], saveCustomers: ['customerId', 'label', 'points'], clearCustomers: ['customerId', 'group'] };
 const rawCall = (fn, ...args) => {
   const body = { action: fn };
   if (fn === 'login') body.password = args[0];
@@ -490,30 +537,57 @@ function showError(err) {
   $('groups').innerHTML = `<div class="empty">Something went wrong: ${esc(err && err.message || err)}</div>`;
 }
 
-// ---------- sales customers ----------
+// ---------- sales and service customers ----------
+// point: [lat, lng, type, year, make, model, purchaseType, saleDate, serviceDate]
 let custInfo = null, csvRows = null, csvHeaders = [];
+const F = { yMin: '', yMax: '', makes: new Set(), models: new Set(), purch: new Set(), sFrom: '', sTo: '', vFrom: '', vTo: '', modelQ: '' };
+function resetFilters() {
+  Object.assign(F, { yMin: '', yMax: '', sFrom: '', sTo: '', vFrom: '', vTo: '', modelQ: '' });
+  F.makes.clear(); F.models.clear(); F.purch.clear();
+  ['fSaleFrom', 'fSaleTo', 'fSvcFrom', 'fSvcTo', 'fModelSearch'].forEach(id => $(id).value = '');
+}
 function loadCustomers(id) {
-  clearCust(); custInfo = null; renderCustLegend();
-  call('getCustomers', id).then(info => {
+  clearCust(); custInfo = null; resetFilters(); renderCustLegend(); renderFilters();
+  return call('getCustomers', id).then(info => {
     if (!account || account.id !== id) return;
-    custInfo = info; drawCustomers(); renderCustLegend();
+    custInfo = info; drawCustomers(); renderFilters();
   }).catch(() => {});
 }
+const activeFilters = () => [F.yMin || F.yMax, F.makes.size, F.models.size, F.purch.size, F.sFrom || F.sTo, F.vFrom || F.vTo].filter(Boolean).length;
+function passes(p) {
+  const yr = p[3];
+  if ((F.yMin || F.yMax) && (!yr || (F.yMin && yr < F.yMin) || (F.yMax && yr > F.yMax))) return false;
+  if (F.makes.size && !F.makes.has(p[4])) return false;
+  if (F.models.size && !F.models.has(p[4] + '|' + p[5])) return false;
+  if (F.purch.size && p[6] && !F.purch.has(p[6])) return false;
+  if (p[7] && ((F.sFrom && p[7] < F.sFrom) || (F.sTo && p[7] > F.sTo))) return false;
+  if (p[8] && ((F.vFrom && p[8] < F.vFrom) || (F.vTo && p[8] > F.vTo))) return false;
+  return true;
+}
+let shown = [];
 function drawCustomers() {
   clearCust();
-  if (!custInfo || !custInfo.points.length) return;
+  shown = custInfo ? custInfo.points.filter(passes) : [];
   const edge = css('--panel');
   CUST_TYPES.forEach(t => {
     const c = css(t.color);
-    layers.cust[t.k].addLayers(custInfo.points.filter(p => (p[2] || 'O') === t.k)
+    layers.cust[t.k].addLayers(shown.filter(p => (p[2] || 'O') === t.k)
       .map(p => L.circleMarker([p[0], p[1]], { radius: 4, weight: 1, color: edge, fillColor: c, fillOpacity: .9, interactive: false })));
   });
+  renderCustLegend();
+  const total = custInfo ? custInfo.points.length : 0, n = activeFilters();
+  $('fltCount').textContent = total ? `Showing ${shown.length.toLocaleString()} of ${total.toLocaleString()} customers.` : '';
+  $('fltBadge').hidden = !n; $('fltBadge').textContent = `${n} on`;
 }
+let redrawTimer;
+const redraw = () => { clearTimeout(redrawTimer); redrawTimer = setTimeout(() => { drawCustomers(); renderFilters(true); }, 120); };
+
 function renderCustLegend() {
-  const counts = {}; (custInfo ? custInfo.points : []).forEach(p => counts[p[2] || 'O'] = (counts[p[2] || 'O'] || 0) + 1);
-  $('custLegend').innerHTML = CUST_TYPES.filter(t => counts[t.k]).map(t =>
+  const counts = {}; shown.forEach(p => counts[p[2] || 'O'] = (counts[p[2] || 'O'] || 0) + 1);
+  const all = {}; (custInfo ? custInfo.points : []).forEach(p => all[p[2] || 'O'] = 1);
+  $('custLegend').innerHTML = CUST_TYPES.filter(t => all[t.k]).map(t =>
     `<label for="showCust${t.k}"><input type="checkbox" id="showCust${t.k}" data-k="${t.k}" ${custHidden[t.k] ? '' : 'checked'}>` +
-    `<i class="sw cu" style="--c:var(${t.color})"></i>${t.name} (${counts[t.k].toLocaleString()})</label>`).join('');
+    `<i class="sw cu" style="--c:var(${t.color})"></i>${t.name} (${(counts[t.k] || 0).toLocaleString()})</label>`).join('');
   $('custLegend').querySelectorAll('input').forEach(cb => cb.addEventListener('change', e => {
     const k = e.target.dataset.k; custHidden[k] = !e.target.checked;
     e.target.checked ? map.addLayer(layers.cust[k]) : map.removeLayer(layers.cust[k]);
@@ -521,17 +595,62 @@ function renderCustLegend() {
   CUST_TYPES.forEach(t => { if (custHidden[t.k]) map.removeLayer(layers.cust[t.k]); else if (!map.hasLayer(layers.cust[t.k])) map.addLayer(layers.cust[t.k]); });
   $('custOpen').hidden = !account;
 }
-const typeSummary = pts => { const c = {}; pts.forEach(p => c[p[2] || 'O'] = (c[p[2] || 'O'] || 0) + 1);
-  return CUST_TYPES.filter(t => c[t.k]).map(t => `${c[t.k].toLocaleString()} ${t.name.toLowerCase()}`).join(', '); };
 
+// ---------- filter panel ----------
+const tally = (pts, key) => { const m = new Map(); pts.forEach(p => { const k = key(p); if (k) m.set(k, (m.get(k) || 0) + 1); }); return m; };
+function checkList(el, entries, selected, label) {
+  el.innerHTML = entries.length ? entries.map(([k, n]) =>
+    `<label><input type="checkbox" value="${esc(k)}" ${selected.has(k) ? 'checked' : ''}>${esc(label ? label(k) : k)}<span class="n">${n.toLocaleString()}</span></label>`).join('')
+    : '<span class="none">None in this upload.</span>';
+  el.querySelectorAll('input').forEach(cb => cb.addEventListener('change', e => {
+    e.target.checked ? selected.add(e.target.value) : selected.delete(e.target.value);
+    if (el.id === 'fMake') [...F.models].forEach(m => { if (F.makes.size && !F.makes.has(m.split('|')[0])) F.models.delete(m); });
+    redraw();
+  }));
+}
+function renderFilters(keepYears) {
+  const pts = custInfo ? custInfo.points : [];
+  $('custFilters').hidden = !pts.length;
+  if (!pts.length) return;
+  const years = [...new Set(pts.map(p => p[3]).filter(Boolean))].sort();
+  if (!keepYears) {
+    const opts = '<option value="">Any</option>' + years.map(y => `<option>${y}</option>`).join('');
+    $('fYearMin').innerHTML = opts; $('fYearMax').innerHTML = opts;
+  }
+  $('fYearMin').value = F.yMin; $('fYearMax').value = F.yMax;
+  const byCount = m => [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  checkList($('fMake'), byCount(tally(pts, p => p[4])), F.makes);
+  const q = F.modelQ.toLowerCase();
+  const models = byCount(tally(pts.filter(p => !F.makes.size || F.makes.has(p[4])), p => p[5] ? p[4] + '|' + p[5] : ''))
+    .filter(([k]) => !q || k.toLowerCase().includes(q) || F.models.has(k));
+  checkList($('fModel'), models, F.models, k => { const [mk, md] = k.split('|'); return F.makes.size === 1 ? md : `${md} (${mk || '?'})`; });
+  checkList($('fPurch'), byCount(tally(pts, p => p[6])), F.purch);
+}
+$('fYearMin').addEventListener('change', e => { F.yMin = e.target.value; redraw(); });
+$('fYearMax').addEventListener('change', e => { F.yMax = e.target.value; redraw(); });
+$('fModelSearch').addEventListener('input', e => { F.modelQ = e.target.value; renderFilters(true); });
+[['fSaleFrom', 'sFrom'], ['fSaleTo', 'sTo'], ['fSvcFrom', 'vFrom'], ['fSvcTo', 'vTo']].forEach(([id, k]) =>
+  $(id).addEventListener('change', e => { F[k] = e.target.value; redraw(); }));
+$('fltClear').addEventListener('click', () => { resetFilters(); drawCustomers(); renderFilters(); });
+
+// ---------- upload window ----------
 const custMsg = (t, err) => { $('custMsg').textContent = t || ''; $('custMsg').className = 'msg' + (err ? ' err' : ''); };
+const GROUP_NAME = { sales: 'Sales', service: 'Service' };
+function renderSaved() {
+  const ups = custInfo ? custInfo.uploads || [] : [];
+  const has = g => ups.some(u => u.group === g);
+  $('custSaved').hidden = !ups.length;
+  $('custSaved').innerHTML = ups.length ? `<strong>Saved for ${esc(account.name)}</strong>` + ups.map(u =>
+    `<div>${GROUP_NAME[u.group]}: ${u.count.toLocaleString()} points from "${esc(u.label)}", uploaded ${esc(u.uploaded)}</div>`).join('') +
+    '<div class="note">A new sales file replaces saved sales points; a new service file replaces saved service points.</div>' : '';
+  [['clrSales', has('sales')], ['clrService', has('service')], ['clrAll', has('sales') && has('service')]].forEach(([id, show]) => {
+    const b = $(id); b.hidden = !show; b.dataset.armed = ''; b.textContent = { clrSales: 'Remove sales', clrService: 'Remove service', clrAll: 'Remove all' }[id];
+  });
+}
 function openCustModal() {
   csvRows = null; $('custFile').value = ''; $('custMap').hidden = true; $('custBar').hidden = true; custMsg('');
   $('custGo').disabled = true; $('custLabel').value = '';
-  const n = custInfo ? custInfo.points.length : 0;
-  $('custSaved').hidden = !n; $('custClear').hidden = !n; $('custClear').dataset.armed = '';
-  $('custClear').textContent = 'Remove saved points';
-  if (n) $('custSaved').textContent = `Saved for ${account.name}: ${n.toLocaleString()} points (${typeSummary(custInfo.points)}) from "${custInfo.label}", uploaded ${custInfo.uploaded}. A new upload replaces them.`;
+  renderSaved();
   $('custModal').hidden = false; $('custFile').focus();
 }
 $('custOpen').addEventListener('click', openCustModal);
@@ -539,12 +658,18 @@ $('custClose').addEventListener('click', () => { $('custModal').hidden = true; }
 
 // Guess columns from common DMS export headers.
 const GUESS = {
-  colStreet: /^(street|address|address ?1|addr ?1|street address|home address|customer address|mailing address|address line ?1)$/i,
-  colCity: /^(city|town|customer city|home city)$/i,
-  colState: /^(state|st|province|customer state|home state)$/i,
-  colZip: /^(zip|zip ?code|postal|postal ?code|zip5|customer zip|home zip)$/i,
-  colCat: /^(category|sale ?type|deal ?type|new ?\/ ?used|n ?\/ ?u|vehicle ?type)$/i,
-  colSrc: /^(source|record ?type|src|data ?source)$/i
+  colStreet: /^(street|address|address ?1|addr ?1|street ?address|home ?address|customer ?address|mailing ?address|address ?line ?1)$/i,
+  colCity: /^(city|town|customer ?city|home ?city)$/i,
+  colState: /^(state|st|province|customer ?state|home ?state)$/i,
+  colZip: /^(zip|zip ?code|postal|postal ?code|zip5|customer ?zip|home ?zip)$/i,
+  colCat: /^(category|new ?\/ ?used|n ?\/ ?u|vehicle ?type|stock ?type)$/i,
+  colSrc: /^(source|record ?type|src|data ?source)$/i,
+  colYear: /^(year|yr|model ?year|veh(icle)? ?year)$/i,
+  colMake: /^(make|veh(icle)? ?make)$/i,
+  colModel: /^(model|veh(icle)? ?model)$/i,
+  colPurch: /^(purchase ?type|payment ?type|finance ?type|deal ?type|sale ?type)$/i,
+  colSaleDate: /^(date|sale ?date|sold ?date|deal ?date|contract ?date|purchase ?date|delivery ?date)$/i,
+  colSvcDate: /^(last ?service|last ?service ?date|service ?date|last ?ro ?date|ro ?date|last ?visit)$/i
 };
 // New / Used from the category column; N/A or a 2-svc source means service.
 function classify(cat, src) {
@@ -554,6 +679,21 @@ function classify(cat, src) {
   if (/svc|service/.test(src) || /^2\b/.test(src) || cat === 'n/a' || cat === 'na') return 'S';
   return 'O';
 }
+// Dates arrive as 11/20/2026, 2026-11-20, 11/20/26 10:15 AM or Excel day numbers.
+function normDate(v) {
+  const s = String(v || '').trim(); if (!s) return '';
+  const pad = n => String(n).padStart(2, '0');
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})\b/);
+  if (m) { const y = m[3].length === 2 ? (Number(m[3]) > 50 ? '19' : '20') + m[3] : m[3]; return `${y}-${pad(m[1])}-${pad(m[2])}`; }
+  if (/^\d{5}(\.\d+)?$/.test(s)) { const d = new Date(Date.UTC(1899, 11, 30) + Number(s) * 86400000); return d.toISOString().slice(0, 10); }
+  const d = new Date(s); return isNaN(d) ? '' : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+const normYear = v => { const m = String(v || '').match(/\b(19|20)\d{2}\b/); return m ? m[0] : ''; };
+const up = v => String(v || '').trim().replace(/\s+/g, ' ').toUpperCase();
+const titleCase = v => String(v || '').trim().toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
+
 $('custFile').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
   custMsg('Reading file…');
@@ -561,9 +701,11 @@ $('custFile').addEventListener('change', e => {
     csvRows = res.data; csvHeaders = res.meta.fields || [];
     if (!csvRows.length || !csvHeaders.length) { custMsg('That file has no rows. Check that it is a CSV with a header row.', true); return; }
     if (csvRows.length > 25000) { custMsg(`That file has ${csvRows.length.toLocaleString()} rows. Split it into files of 25,000 or fewer.`, true); csvRows = null; return; }
+    const used = new Set();
     Object.keys(GUESS).forEach(id => {
-      const sel = $(id), guess = csvHeaders.find(hd => GUESS[id].test(hd.trim()));
-      sel.innerHTML = '<option value="">(none)</option>' + csvHeaders.map(hd => `<option ${hd === guess ? 'selected' : ''}>${esc(hd)}</option>`).join('');
+      const guess = csvHeaders.find(hd => !used.has(hd) && GUESS[id].test(hd.trim()));
+      if (guess) used.add(guess);
+      $(id).innerHTML = '<option value="">(none)</option>' + csvHeaders.map(hd => `<option ${hd === guess ? 'selected' : ''}>${esc(hd)}</option>`).join('');
     });
     $('custLabel').value = f.name.replace(/\.csv$/i, '').slice(0, 80);
     $('custMap').hidden = false; $('custGo').disabled = false;
@@ -572,17 +714,19 @@ $('custFile').addEventListener('change', e => {
 });
 
 $('custGo').addEventListener('click', async () => {
-  const col = id => $(id).value;
+  const col = id => $(id).value, val = (r, id) => col(id) ? r[col(id)] : '';
   if (!col('colStreet')) { custMsg('Pick the street address column.', true); return; }
-  const rows = [], types = {};
+  const rows = [], extra = {};
   csvRows.forEach((r, i) => {
-    const street = String(r[col('colStreet')] || '').trim();
+    const street = String(val(r, 'colStreet') || '').trim();
     if (!street) return;
-    rows.push({ i, street, city: col('colCity') ? r[col('colCity')] : '', state: col('colState') ? r[col('colState')] : '', zip: col('colZip') ? r[col('colZip')] : '' });
-    types[i] = classify(col('colCat') ? r[col('colCat')] : '', col('colSrc') ? r[col('colSrc')] : '');
+    rows.push({ i, street, city: val(r, 'colCity'), state: val(r, 'colState'), zip: val(r, 'colZip') });
+    // Only these fields are kept with each point. Names and other columns never leave the browser.
+    extra[i] = [classify(val(r, 'colCat'), val(r, 'colSrc')), normYear(val(r, 'colYear')), up(val(r, 'colMake')), up(val(r, 'colModel')),
+      titleCase(val(r, 'colPurch')), normDate(val(r, 'colSaleDate')), normDate(val(r, 'colSvcDate'))];
   });
   if (!rows.length) { custMsg('No addresses found in that column.', true); return; }
-  const acctId = account.id, label = $('custLabel').value.trim() || 'Sales customers';
+  const acctId = account.id, label = $('custLabel').value.trim() || 'Customers';
   $('custGo').disabled = true; $('custClose').disabled = true; $('custBar').hidden = false;
   const chunks = []; for (let k = 0; k < rows.length; k += 500) chunks.push(rows.slice(k, k + 500));
   const points = []; let done = 0, next = 0, failed = 0;
@@ -593,7 +737,7 @@ $('custGo').addEventListener('click', async () => {
       const ch = chunks[next++];
       let res = null;
       for (let attempt = 0; attempt < 2 && !res; attempt++) { try { res = await call('geocode', ch); } catch (e) { if (attempt) failed += ch.length; } }
-      (res || []).forEach(p => points.push([p.lat, p.lng, types[p.i] || 'O']));
+      (res || []).forEach(p => points.push([p.lat, p.lng, ...(extra[p.i] || ['O'])]));
       done += ch.length; step();
     }
   };
@@ -604,25 +748,30 @@ $('custGo').addEventListener('click', async () => {
     custMsg(`Saving ${points.length.toLocaleString()} points…`);
     const saved = await call('saveCustomers', acctId, label, points);
     const missed = rows.length - points.length;
-    custMsg(`Mapped ${saved.saved.toLocaleString()} of ${rows.length.toLocaleString()} customers: ${typeSummary(points)}.` +
+    const summary = typeSummary(points);
+    if (account && account.id === acctId) await loadCustomers(acctId);
+    renderSaved();
+    custMsg(`Mapped ${saved.saved.toLocaleString()} of ${rows.length.toLocaleString()} customers: ${summary}.` +
       (missed ? ` ${missed.toLocaleString()} couldn't be matched to an address${failed ? ` (${failed.toLocaleString()} because the geocoder didn't respond — try again later)` : ''}.` : ''));
-    if (account && account.id === acctId) { custInfo = { points, label: saved.label, uploaded: saved.uploaded }; drawCustomers(); renderCustLegend(); }
   } catch (err) {
     custMsg(String(err && err.message || err), true);
   } finally {
     $('custClose').disabled = false; $('custFile').value = ''; $('custMap').hidden = true;
   }
 });
+const typeSummary = pts => { const c = {}; pts.forEach(p => c[p[2] || 'O'] = (c[p[2] || 'O'] || 0) + 1);
+  return CUST_TYPES.filter(t => c[t.k]).map(t => `${c[t.k].toLocaleString()} ${t.name.toLowerCase()}`).join(', '); };
 
-$('custClear').addEventListener('click', () => {
-  const b = $('custClear');
-  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Click again to remove'; return; }
+// Remove sales, service or everything for this account (click twice to confirm).
+['clrSales', 'clrService', 'clrAll'].forEach(id => $(id).addEventListener('click', () => {
+  const b = $(id), group = b.dataset.group;
+  if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Click again to confirm'; return; }
   b.disabled = true;
-  call('clearCustomers', account.id).then(() => {
-    custInfo = null; drawCustomers(); renderCustLegend();
-    $('custSaved').hidden = true; b.hidden = true; custMsg('Saved points removed.');
+  const acctId = account.id;
+  call('clearCustomers', acctId, group).then(() => loadCustomers(acctId)).then(() => {
+    renderSaved(); custMsg(group === 'all' ? 'All saved points removed.' : `Saved ${group} points removed.`);
   }).catch(err => custMsg(String(err && err.message || err), true)).finally(() => { b.disabled = false; });
-});
+}));
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('custModal').hidden && !$('custClose').disabled) $('custModal').hidden = true; });
 
 if (token) loadAccounts(); else showGate();
